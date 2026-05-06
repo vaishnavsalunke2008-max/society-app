@@ -1,14 +1,3 @@
-export function getUserRole(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('userRole')
-  }
-  return null
-}
-
-export function isAdmin(): boolean {
-  return getUserRole() === 'admin'
-}
-
 export type UserRole = 'admin' | 'resident' | 'security'
 
 export type MockUser = {
