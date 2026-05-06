@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Home, Bell, MessageSquare, Calendar } from 'lucide-react'
 
@@ -13,6 +14,17 @@ const navItems = [
 
 export default function Nav() {
   const pathname = usePathname()
+  const [dashboardHref, setDashboardHref] = useState('/dashboard')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const role = window.localStorage.getItem('userRole')
+    if (role === 'admin' || role === 'resident' || role === 'security') {
+      setDashboardHref(`/dashboard/${role}`)
+    } else {
+      setDashboardHref('/dashboard')
+    }
+  }, [])
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
@@ -20,11 +32,15 @@ export default function Nav() {
         <div className="flex justify-around py-2">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const href = item.href === '/dashboard' ? dashboardHref : item.href
+            const isActive =
+              item.href === '/dashboard'
+                ? pathname.startsWith('/dashboard')
+                : pathname === item.href
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href}
                 className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
                   isActive ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
                 }`}

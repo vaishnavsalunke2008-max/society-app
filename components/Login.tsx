@@ -1,104 +1,108 @@
 'use client'
 
-import { useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { authenticate, getUserRole, setUserSession, UserRole } from '@/lib/auth'
 
 export default function Login() {
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [otp, setOtp] = useState('')
-  const [role, setRole] = useState('')
-  const [step, setStep] = useState<'phone' | 'otp' | 'role'>('phone')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<UserRole | ''>('')
+  const [error, setError] = useState('')
+  const router = useRouter()
 
-  const sendOTP = async () => {
-    // Mock OTP sending
-    alert(`OTP sent to ${phoneNumber}`)
-    setStep('otp')
-  }
-
-  const verifyOTP = async () => {
-    // Mock OTP verification
-    if (otp === '123456') {
-      setStep('role')
-    } else {
-      alert('Invalid OTP. Use 123456 for demo.')
+  useEffect(() => {
+    const existingRole = getUserRole()
+    if (existingRole) {
+      router.replace(`/dashboard/${existingRole}`)
     }
-  }
+  }, [router])
 
-  const selectRole = () => {
-    // Save role to localStorage for demo
-    localStorage.setItem('userRole', role)
-    localStorage.setItem('userPhone', phoneNumber)
-    window.location.href = '/dashboard'
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+
+    if (!username.trim() || !password.trim() || !role) {
+      setError('Please enter all fields and select your role.')
+      return
+    }
+
+    const user = authenticate(username.trim(), password.trim(), role)
+    if (!user) {
+      setError('Invalid credentials. Try one of the demo users below.')
+      return
+    }
+
+    setUserSession(user)
+    router.push(`/dashboard/${user.role}`)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+      <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-sm">
         <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            SocietyHub Login
-          </h2>
-          <p className="text-center text-sm text-gray-600 mt-2">
-            Demo: Use any phone number, OTP: 123456
+          <h2 className="text-center text-3xl font-bold text-slate-900">SocietyHub Login</h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Use one of the demo users below to log in by role.
           </p>
         </div>
-        {step === 'phone' && (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Enter your phone number"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-              />
-            </div>
-            <Button onClick={sendOTP} className="w-full">
-              Send OTP
-            </Button>
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
           </div>
-        )}
-        {step === 'otp' && (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="otp">Enter OTP</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter 6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-            </div>
-            <Button onClick={verifyOTP} className="w-full">
-              Verify OTP
-            </Button>
+
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </div>
-        )}
-        {step === 'role' && (
-          <div className="space-y-4">
-            <div>
-              <Label>Select Your Role</Label>
-              <Select onValueChange={setRole}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="resident">Resident</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="security">Security</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={selectRole} className="w-full" disabled={!role}>
-              Continue
-            </Button>
+
+          <div>
+            <Label>Select Role</Label>
+            <Select onValueChange={(value) => setRole(value as UserRole)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="resident">Resident</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="security">Security</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
+
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          <Button className="w-full" type="submit">
+            Log in
+          </Button>
+        </form>
+
+        <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
+          <p className="font-semibold text-slate-900">Demo users</p>
+          <ul className="mt-3 space-y-2">
+            <li>Admin: adminuser / admin123</li>
+            <li>Resident: resident1 / res123</li>
+            <li>Security: security1 / sec123</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
