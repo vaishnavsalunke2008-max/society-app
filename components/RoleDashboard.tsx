@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Nav from '@/components/Nav'
-import { clearUserSession, getUserRole, UserRole } from '@/lib/auth'
+import { logOut, onAuthStateChange, UserData, UserRole } from '@/lib/auth'
+import { canAccessDashboard } from '@/lib/roleHandler'
 
 const roleActions: Record<UserRole, string[]> = {
   admin: ['Manage Residents', 'View Complaints', 'Post Notices'],
@@ -20,21 +21,47 @@ const roleLabels: Record<UserRole, string> = {
 
 export default function RoleDashboard({ role }: { role: UserRole }) {
   const router = useRouter()
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedRole = getUserRole()
-    if (!storedRole) {
-      router.replace('/')
-      return
-    }
-    if (storedRole !== role) {
-      router.replace(`/dashboard/${storedRole}`)
-    }
+    const unsubscribe = onAuthStateChange((user, data) => {
+      if (!user || !data) {
+        router.replace('/')
+        return
+      }
+
+      if (!canAccessDashboard(data, role)) {
+        router.replace('/dashboard')
+        return
+      }
+
+      setUserData(data)
+      setLoading(false)
+    })
+
+    return unsubscribe
   }, [router, role])
 
-  const handleLogout = () => {
-    clearUserSession()
-    router.push('/')
+  const handleLogout = async () => {
+    try {
+      await logOut()
+      router.push('/')
+    } catch (err) {
+      console.error('Logout failed:', err)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <p className="text-center text-sm text-slate-500">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!userData) {
+    return null
   }
 
   return (

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import Nav from '@/components/Nav'
-import { isAdmin } from '@/lib/auth'
 
 export default function Meetings() {
   const [meetings] = useState([
@@ -44,12 +43,10 @@ export default function Meetings() {
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Meetings</h1>
-          {isAdmin() && (
-            <Button onClick={() => setShowForm(!showForm)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Schedule Meeting
-            </Button>
-          )}
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Meeting
+          </Button>
         </div>
 
         {showForm && (

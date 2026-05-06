@@ -1,44 +1,43 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { authenticate, getUserRole, setUserSession, UserRole } from '@/lib/auth'
+import { signIn, onAuthStateChange, UserData } from '@/lib/auth'
+import { redirectToDashboard } from '@/lib/roleHandler'
 
 export default function Login() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<UserRole | ''>('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    const existingRole = getUserRole()
-    if (existingRole) {
-      router.replace(`/dashboard/${existingRole}`)
-    }
+    const unsubscribe = onAuthStateChange((user, userData) => {
+      if (user && userData) {
+        router.replace(redirectToDashboard(userData))
+      }
+    })
+    return unsubscribe
   }, [router])
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
+    setLoading(true)
 
-    if (!username.trim() || !password.trim() || !role) {
-      setError('Please enter all fields and select your role.')
-      return
+    try {
+      const userData = await signIn(email.trim(), password.trim())
+      router.push(redirectToDashboard(userData))
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
     }
-
-    const user = authenticate(username.trim(), password.trim(), role)
-    if (!user) {
-      setError('Invalid credentials. Try one of the demo users below.')
-      return
-    }
-
-    setUserSession(user)
-    router.push(`/dashboard/${user.role}`)
   }
 
   return (
@@ -47,19 +46,20 @@ export default function Login() {
         <div>
           <h2 className="text-center text-3xl font-bold text-slate-900">SocietyHub Login</h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            Use one of the demo users below to log in by role.
+            Sign in to your account
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="username"
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
             />
           </div>
 
@@ -71,37 +71,24 @@ export default function Login() {
               placeholder="Enter your password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              required
             />
           </div>
 
-          <div>
-            <Label>Select Role</Label>
-            <Select onValueChange={(value) => setRole(value as UserRole)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="resident">Resident</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="security">Security</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-          <Button className="w-full" type="submit">
-            Log in
+          <Button className="w-full" type="submit" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
 
-        <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-          <p className="font-semibold text-slate-900">Demo users</p>
-          <ul className="mt-3 space-y-2">
-            <li>Admin: adminuser / admin123</li>
-            <li>Resident: resident1 / res123</li>
-            <li>Security: security1 / sec123</li>
-          </ul>
+        <div className="text-center">
+          <p className="text-sm text-slate-600">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="text-blue-600 hover:underline">
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>

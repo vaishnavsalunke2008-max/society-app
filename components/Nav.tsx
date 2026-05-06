@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Home, Bell, MessageSquare, Calendar } from 'lucide-react'
+import { onAuthStateChange, UserData } from '@/lib/auth'
+import { getDashboardPath } from '@/lib/roleHandler'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -17,13 +19,15 @@ export default function Nav() {
   const [dashboardHref, setDashboardHref] = useState('/dashboard')
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const role = window.localStorage.getItem('userRole')
-    if (role === 'admin' || role === 'resident' || role === 'security') {
-      setDashboardHref(`/dashboard/${role}`)
-    } else {
-      setDashboardHref('/dashboard')
-    }
+    const unsubscribe = onAuthStateChange((user, userData) => {
+      if (user && userData) {
+        setDashboardHref(getDashboardPath(userData.role))
+      } else {
+        setDashboardHref('/dashboard')
+      }
+    })
+
+    return unsubscribe
   }, [])
 
   return (

@@ -5,7 +5,6 @@ import { Bell, MessageSquare, Calendar, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Nav from '@/components/Nav'
-import { isSecurity, isAdmin } from '@/lib/auth'
 
 export default function Dashboard() {
   const [notices] = useState([
@@ -29,12 +28,10 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
-          {!isSecurity() && (
-            <Button className="h-16 flex flex-col items-center justify-center">
-              <MessageSquare className="h-6 w-6 mb-1" />
-              Raise Complaint
-            </Button>
-          )}
+          <Button className="h-16 flex flex-col items-center justify-center">
+            <MessageSquare className="h-6 w-6 mb-1" />
+            Raise Complaint
+          </Button>
           <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
             <Bell className="h-6 w-6 mb-1" />
             View Notices
@@ -43,18 +40,14 @@ export default function Dashboard() {
             <Calendar className="h-6 w-6 mb-1" />
             Meetings
           </Button>
-          {!isSecurity() && (
-            <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-              <CreditCard className="h-6 w-6 mb-1" />
-              Pay Maintenance
-            </Button>
-          )}
-          {isAdmin() && (
-            <Button variant="outline" className="h-16 flex flex-col items-center justify-center col-span-2">
-              <Bell className="h-6 w-6 mb-1" />
-              Post Notice
-            </Button>
-          )}
+          <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
+            <CreditCard className="h-6 w-6 mb-1" />
+            Pay Maintenance
+          </Button>
+          <Button variant="outline" className="h-16 flex flex-col items-center justify-center col-span-2">
+            <Bell className="h-6 w-6 mb-1" />
+            Post Notice
+          </Button>
         </div>
 
         {/* Latest Notices */}

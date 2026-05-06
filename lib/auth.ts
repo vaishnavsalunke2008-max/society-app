@@ -1,61 +1,65 @@
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { auth, db } from './firebase'
+
 export type UserRole = 'admin' | 'resident' | 'security'
 
-export type MockUser = {
-  username: string
-  password: string
+export interface UserData {
+  uid: string
+  email: string
   role: UserRole
-  fullName: string
 }
 
-const mockUsers: MockUser[] = [
-  { username: 'adminuser', password: 'admin123', role: 'admin', fullName: 'Admin User' },
-  { username: 'resident1', password: 'res123', role: 'resident', fullName: 'Resident One' },
-  { username: 'security1', password: 'sec123', role: 'security', fullName: 'Security Guard' },
-]
+const ADMIN_INVITE_CODE = 'ADMIN2024' // Simulate secure code; in production, move to backend
 
-export function authenticate(
-  username: string,
-  password: string,
-  role: UserRole
-): MockUser | null {
-  return (
-    mockUsers.find(
-      (user) =>
-        user.username === username &&
-        user.password === password &&
-        user.role === role
-    ) ?? null
-  )
-}
-
-export function setUserSession(user: MockUser) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem('userRole', user.role)
-  localStorage.setItem('userName', user.username)
-  localStorage.setItem('userFullName', user.fullName)
-}
-
-export function clearUserSession() {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem('userRole')
-  localStorage.removeItem('userName')
-  localStorage.removeItem('userFullName')
-}
-
-export function getUserRole(): UserRole | null {
-  if (typeof window !== 'undefined') {
-    const role = localStorage.getItem('userRole')
-    if (role === 'admin' || role === 'resident' || role === 'security') {
-      return role
-    }
+export async function signUp(email: string, password: string, role: UserRole, adminCode?: string): Promise<UserData> {
+  if (role === 'admin' && adminCode !== ADMIN_INVITE_CODE) {
+    throw new Error('Invalid admin invite code')
   }
-  return null
+
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+  const user = userCredential.user
+
+  const userData: UserData = {
+    uid: user.uid,
+    email: user.email!,
+    role,
+  }
+
+  await setDoc(doc(db, 'users', user.uid), userData)
+
+  return userData
 }
 
-export function isAdmin(): boolean {
-  return getUserRole() === 'admin'
+export async function signIn(email: string, password: string): Promise<UserData> {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password)
+  const user = userCredential.user
+
+  const userDoc = await getDoc(doc(db, 'users', user.uid))
+  if (!userDoc.exists()) {
+    throw new Error('User data not found')
+  }
+
+  return userDoc.data() as UserData
 }
 
-export function isSecurity(): boolean {
-  return getUserRole() === 'security'
+export async function logOut(): Promise<void> {
+  await signOut(auth)
 }
+
+export function onAuthStateChange(callback: (user: User | null, userData: UserData | null) => void): () => void {
+  return onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      const userData = userDoc.exists() ? (userDoc.data() as UserData) : null
+      callback(user, userData)
+    } else {
+      callback(null, null)
+    }
+  })
+}
+
+export function getCurrentUser(): User | null {
+  return auth.currentUser
+}
+

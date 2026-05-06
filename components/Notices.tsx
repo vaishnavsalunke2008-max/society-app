@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import Nav from '@/components/Nav'
-import { isAdmin } from '@/lib/auth'
 
 export default function Notices() {
   const [notices] = useState([
@@ -32,12 +31,10 @@ export default function Notices() {
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Notices</h1>
-          {isAdmin() && (
-            <Button onClick={() => setShowForm(!showForm)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Notice
-            </Button>
-          )}
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Notice
+          </Button>
         </div>
 
         {showForm && (

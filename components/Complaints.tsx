@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import Nav from '@/components/Nav'
-import { isSecurity } from '@/lib/auth'
 
 export default function Complaints() {
   const [complaints] = useState([
@@ -40,12 +39,10 @@ export default function Complaints() {
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Complaints</h1>
-          {!isSecurity() && (
-            <Button onClick={() => setShowForm(!showForm)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Raise Complaint
-            </Button>
-          )}
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Raise Complaint
+          </Button>
         </div>
 
         {showForm && (
