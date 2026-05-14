@@ -32,7 +32,7 @@ export default function Login() {
 
     try {
       const userData = await signIn(email.trim(), password.trim())
-      router.push(redirectToDashboard(userData))
+      window.location.href = redirectToDashboard(userData)
     } catch (err: any) {
       setError(err.message || 'Login failed')
     } finally {

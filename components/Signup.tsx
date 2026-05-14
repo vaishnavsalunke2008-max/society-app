@@ -43,7 +43,7 @@ export default function Signup() {
 
     try {
       const userData = await signUp(email.trim(), password.trim(), role, adminCode.trim())
-      router.push(redirectToDashboard(userData))
+      window.location.href = redirectToDashboard(userData)
     } catch (err: any) {
       setError(err.message || 'Signup failed')
     } finally {
