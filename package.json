@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -16,7 +17,6 @@
     "clsx": "^2.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.0.0",
-    "firebase": "^10.7.0",
     "lucide-react": "^1.14.0",
     "next": "14.0.0",
     "postcss": "^8",

@@ -1,6 +1,5 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { auth, db } from './firebase'
+import { User } from '@supabase/supabase-js'
+import { supabase } from './supabase'
 
 export type UserRole = 'admin' | 'resident' | 'security'
 
@@ -17,49 +16,93 @@ export async function signUp(email: string, password: string, role: UserRole, ad
     throw new Error('Invalid admin invite code')
   }
 
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-  const user = userCredential.user
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  })
+
+  if (error) throw error
+  if (!data.user) throw new Error('User creation failed')
+
+  const user = data.user
 
   const userData: UserData = {
-    uid: user.uid,
+    uid: user.id,
     email: user.email!,
     role,
   }
 
-  await setDoc(doc(db, 'users', user.uid), userData)
+  const { error: dbError } = await supabase
+    .from('users')
+    .insert([{ id: user.id, email: user.email, role }])
+
+  if (dbError) throw dbError
 
   return userData
 }
 
 export async function signIn(email: string, password: string): Promise<UserData> {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password)
-  const user = userCredential.user
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
 
-  const userDoc = await getDoc(doc(db, 'users', user.uid))
-  if (!userDoc.exists()) {
+  if (error) throw error
+  if (!data.user) throw new Error('Sign in failed')
+
+  const user = data.user
+
+  const { data: userDoc, error: dbError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (dbError || !userDoc) {
     throw new Error('User data not found')
   }
 
-  return userDoc.data() as UserData
+  return {
+    uid: userDoc.id,
+    email: userDoc.email,
+    role: userDoc.role,
+  }
 }
 
 export async function logOut(): Promise<void> {
-  await signOut(auth)
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
 }
 
 export function onAuthStateChange(callback: (user: User | null, userData: UserData | null) => void): () => void {
-  return onAuthStateChanged(auth, async (user) => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const user = session?.user ?? null
+    
     if (user) {
-      const userDoc = await getDoc(doc(db, 'users', user.uid))
-      const userData = userDoc.exists() ? (userDoc.data() as UserData) : null
-      callback(user, userData)
+      const { data: userDoc } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+        
+      if (userDoc) {
+        callback(user, {
+          uid: userDoc.id,
+          email: userDoc.email,
+          role: userDoc.role,
+        })
+      } else {
+        callback(user, null)
+      }
     } else {
       callback(null, null)
     }
   })
+
+  return () => subscription.unsubscribe()
 }
 
-export function getCurrentUser(): User | null {
-  return auth.currentUser
+export async function getCurrentUser(): Promise<User | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.user ?? null
 }
-
